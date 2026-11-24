@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Home</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+@font-face{font-family:"Inter";src:url("assets/inter.woff2") format("woff2");font-weight:100 900;font-style:normal;font-display:swap}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#000;overflow:hidden}
+body{cursor:default}
+button{all:unset;box-sizing:border-box}
+
+/* The design lives on a fixed 1920x1080 stage that is scaled to whatever the screen reports. */
+#stage{position:absolute;left:0;top:0;width:1920px;height:1080px;overflow:hidden;transform-origin:0 0;
+  font-family:Inter,system-ui,sans-serif;font-optical-sizing:auto;
+  --fg:#FFFFFF;--fg2:rgba(255,255,255,.78);--card:rgba(0,0,0,.26)}
+#stage.light{--fg:#1D1D1F;--fg2:rgba(29,29,31,.72);--card:rgba(255,255,255,.46)}
+#stage{color:var(--fg)}
+
+/* backgrounds: stacked, cross-faded. opacity only, so it is cheap on a weak GPU */
+.bg{position:absolute;inset:0;width:1920px;height:1080px;opacity:0;transition:opacity 1400ms ease}
+.bg.on{opacity:1}
+
+#msg{position:absolute;left:96px;top:110px;width:1160px;margin:0;font-size:88px;font-weight:650;line-height:1.04;letter-spacing:-.03em;transition:opacity 400ms}
+.card{position:absolute;left:1383px;width:440px;border-radius:36px;background:var(--card);padding:28px 34px;display:flex;flex-direction:column;justify-content:space-between}
+#clock{top:117px;height:206px}
+#wx{top:343px;height:290px}
+.row{display:flex;align-items:baseline;gap:10px}
+#time{font-size:108px;font-weight:250;line-height:.85;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+#ampm{font-size:36px;font-weight:500}
+#date,#feels{font-size:28px;font-weight:500;color:var(--fg2)}
+.wxtop{display:flex;justify-content:space-between;align-items:center}
+#city{font-size:30px;font-weight:600}
+#temp{font-size:104px;font-weight:250;line-height:.85;letter-spacing:-.03em}
+#cond{font-size:30px;font-weight:600}
+.wxbot{display:flex;flex-direction:column;gap:4px}
+
+/* app tiles */
+.slot{position:absolute;top:748px;width:254px;height:152px}
+.sh{position:absolute;left:-83px;top:-40px;width:420px;height:290px;opacity:0;transition:opacity 220ms ease-out;pointer-events:none}
+.tile{position:absolute;inset:0;border-radius:28px;background:#1C1C1E;color:#FFFFFF;display:flex;align-items:center;justify-content:center;cursor:pointer;
+  transform-origin:50% 60%;transition:transform 220ms cubic-bezier(.2,.9,.25,1.1),background 160ms,color 160ms}
+.tile.blk{background:#0B0A0E}
+.tile>span{display:flex;align-items:center;justify-content:center;color:inherit}
+.lbl{position:absolute;left:-40px;width:334px;top:194px;text-align:center;font-size:30px;font-weight:600;opacity:0;transition:opacity 220ms}
+.slot.on .tile{transform:translateY(-12px) scale(1.14);background:#FFFFFF;color:#111113}
+.slot.on .sh,.slot.on .lbl{opacity:1}
+.slot.on .lbl{color:var(--fg)}
+.lg-f{display:none}
+.slot.on .lg-n{display:none}
+.slot.on .lg-f{display:block}
+
+/* screensaver */
+#saver{position:absolute;inset:0;background:#070B12;color:#fff;opacity:0;visibility:hidden;transition:opacity 900ms ease,visibility 0s 900ms}
+#saver.on{opacity:1;visibility:visible;transition:opacity 900ms ease}
+#saver img{position:absolute;inset:0;width:1920px;height:1080px}
+#saver.on img{animation:kb 90s ease-in-out infinite alternate}
+#drift{position:absolute;left:130px;bottom:120px;display:flex;flex-direction:column;gap:22px}
+#saver.on #drift{animation:drift 180s linear infinite alternate}
+#stime{font-size:220px;font-weight:250;line-height:.85;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+#sampm{font-size:60px;font-weight:400}
+#smsg{margin:0;font-size:52px;font-weight:600;letter-spacing:-.02em}
+#swx{display:flex;align-items:center;gap:14px;font-size:30px;font-weight:500;color:rgba(255,255,255,.78)}
+@keyframes kb{from{transform:scale(1)}to{transform:scale(1.06)}}
+@keyframes drift{from{transform:translate(0,0)}to{transform:translate(36px,-28px)}}
+
+#toast{position:absolute;left:0;right:0;bottom:44px;text-align:center;font-size:26px;font-weight:500;opacity:0;transition:opacity 250ms;pointer-events:none}
+#toast.on{opacity:.9}
+</style>
+</head>
+<body>
+<div id="stage" class="">
+  <img class="bg" id="bg-morning" src="assets/bg-morning.jpg" alt="">
+  <img class="bg" id="bg-evening" src="assets/bg-evening.jpg" alt="">
+  <img class="bg" id="bg-night" src="assets/bg-night.jpg" alt="">
+
+  <h1 id="msg"></h1>
+
+  <div class="card" id="clock">
+    <div class="row"><span id="time">--:--</span><span id="ampm"></span></div>
+    <span id="date"></span>
+  </div>
+
+  <div class="card" id="wx">
+    <div class="wxtop"><span id="city">New Delhi</span><span id="wxicon"></span></div>
+    <span id="temp">–°</span>
+    <div class="wxbot"><span id="cond"></span><span id="feels"></span></div>
+  </div>
+
+  <nav id="apps" aria-label="Apps">
+    <div class="slot" style="left:98px">
+      <img class="sh" src="assets/tile-shadow.png" alt="">
+      <button class="tile" aria-label="YouTube"><span><svg role="img" aria-label="YouTube" width="104" height="73" viewBox="0 3.3 24 17.4" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"></path></svg></span></button>
+      <span class="lbl">YouTube</span>
+    </div>
+    <div class="slot" style="left:392px">
+      <img class="sh" src="assets/tile-shadow.png" alt="">
+      <button class="tile" aria-label="Netflix"><span><svg role="img" aria-label="Netflix" width="56" height="96" viewBox="4.5 0 15 24" fill="currentColor"><path d="m5.398 0 8.348 23.602c2.346.059 4.856.398 4.856.398L10.113 0H5.398zm8.489 0v9.172l4.715 13.33V0h-4.715zM5.398 1.5V24c1.873-.225 2.81-.312 4.715-.398V14.83L5.398 1.5z"></path></svg></span></button>
+      <span class="lbl">Netflix</span>
+    </div>
+    <div class="slot" style="left:686px">
+      <img class="sh" src="assets/tile-shadow.png" alt="">
+      <button class="tile" aria-label="JioHotstar"><span><img class="lg-n" src="assets/hotstar-light.png" alt="JioHotstar" style="width:150px;height:84px;object-fit:contain"><img class="lg-f" src="assets/hotstar-dark.png" alt="" style="width:150px;height:84px;object-fit:contain"></span></button>
+      <span class="lbl">JioHotstar</span>
+    </div>
+    <div class="slot" style="left:980px">
+      <img class="sh" src="assets/tile-shadow.png" alt="">
+      <button class="tile" aria-label="Prime Video"><span><svg role="img" aria-label="Prime Video" width="176" height="68" viewBox="0 7.9 24 9.3" fill="currentColor"><path d="M0 9.508c0-.043.01-.073.028-.09.018-.017.047-.025.086-.025h.329c.07 0 .112.034.127.101l.032.119c.091-.088.202-.159.33-.21a1.04 1.04 0 0 1 .396-.079c.294 0 .528.109.7.326.171.217.257.51.257.88 0 .254-.042.475-.127.665-.086.19-.201.335-.347.437a.85.85 0 0 1-.502.154c-.125 0-.243-.02-.355-.06a.857.857 0 0 1-.288-.164v1.003c0 .043-.008.073-.025.09-.017.016-.046.025-.09.025H.115c-.04 0-.068-.009-.086-.025-.019-.017-.028-.047-.028-.09zm1.113.32a.868.868 0 0 0-.447.124v1.206a.834.834 0 0 0 .447.124c.17 0 .296-.058.376-.174.081-.117.121-.3.121-.55 0-.254-.04-.439-.118-.555-.08-.116-.206-.174-.379-.174zm2.248-.087c.121-.134.236-.23.344-.286a.733.733 0 0 1 .345-.085h.063c.043 0 .073.009.092.025.018.017.027.047.027.09v.385c0 .04-.008.068-.025.087-.017.018-.046.027-.089.027a.923.923 0 0 1-.082-.004 1.369 1.369 0 0 0-.383.025c-.1.02-.186.045-.256.076v1.54c0 .04-.008.069-.025.087-.016.018-.046.028-.089.028h-.437c-.04 0-.069-.01-.087-.028-.018-.018-.028-.047-.028-.087V9.508c0-.043.01-.073.028-.09.018-.017.047-.025.087-.025h.328c.07 0 .112.034.128.1zm1.526-.71a.396.396 0 0 1-.278-.096.338.338 0 0 1-.105-.262c0-.11.035-.197.105-.26a.395.395 0 0 1 .278-.097c.116 0 .208.032.278.096.07.064.105.151.105.261a.34.34 0 0 1-.105.262.396.396 0 0 1-.278.096zm-.333.477c0-.043.01-.073.027-.09.019-.017.048-.025.087-.025h.438c.043 0 .072.008.089.025s.025.047.025.09v2.113c0 .04-.008.069-.025.087-.017.018-.046.028-.09.028h-.437c-.04 0-.068-.01-.087-.028-.018-.018-.027-.047-.027-.087zm1.837.11c.161-.107.306-.183.435-.227.13-.045.263-.067.4-.067.273 0 .466.098.579.294.155-.104.3-.18.438-.225.137-.046.278-.069.424-.069.213 0 .377.06.495.179.117.12.175.286.175.5v1.618c0 .04-.008.069-.025.087-.017.019-.046.027-.089.027h-.438c-.04 0-.068-.008-.086-.027-.018-.018-.028-.047-.028-.087V10.15c0-.208-.092-.312-.278-.312-.164 0-.33.04-.497.119v1.664c0 .04-.008.069-.025.087-.017.019-.046.027-.09.027h-.437c-.04 0-.068-.008-.086-.027-.019-.018-.028-.047-.028-.087V10.15c0-.208-.093-.312-.278-.312-.17 0-.337.04-.502.123v1.66c0 .04-.008.069-.025.087-.017.019-.046.027-.089.027h-.438c-.039 0-.068-.008-.086-.027-.018-.018-.027-.047-.027-.087V9.508c0-.043.009-.073.027-.09.018-.017.047-.025.086-.025h.329c.07 0 .112.034.128.101zm4.387 1.16a1.81 1.81 0 0 1-.451-.05c.018.204.08.35.185.44.105.088.263.132.476.132.085 0 .168-.005.249-.016a3.08 3.08 0 0 0 .362-.078.143.143 0 0 1 .023-.002c.052 0 .078.035.078.105v.211c0 .049-.007.083-.02.103a.169.169 0 0 1-.08.053 1.953 1.953 0 0 1-.708.128c-.377 0-.666-.103-.868-.312-.203-.207-.304-.505-.304-.893 0-.398.104-.71.31-.935.207-.227.494-.34.862-.34.283 0 .504.069.664.206a.69.69 0 0 1 .24.55c0 .23-.087.403-.258.52-.172.119-.425.177-.76.177zm.064-.99c-.292 0-.46.18-.506.54.122.025.257.037.406.037.155 0 .267-.024.337-.071.07-.047.105-.12.105-.218 0-.193-.114-.289-.342-.289zm2.948 1.946a.21.21 0 0 1-.075-.011.119.119 0 0 1-.05-.037.274.274 0 0 1-.038-.071l-.777-2.04a1.863 1.863 0 0 1-.023-.063.162.162 0 0 1-.009-.05c0-.047.03-.07.091-.07h.454c.049 0 .084.01.107.028.023.018.04.049.052.092l.468 1.622.477-1.622a.175.175 0 0 1 .052-.092c.023-.018.058-.027.107-.027h.44c.061 0 .091.022.091.068a.16.16 0 0 1-.009.05l-.022.065-.777 2.039a.274.274 0 0 1-.039.07.122.122 0 0 1-.047.038.207.207 0 0 1-.078.01zm2.02-2.703a.393.393 0 0 1-.277-.097.338.338 0 0 1-.105-.26c0-.11.035-.198.105-.262a.393.393 0 0 1 .277-.096c.115 0 .207.032.277.096.07.064.104.151.104.261 0 .11-.034.197-.104.261a.393.393 0 0 1-.277.097zm-.218 2.703c-.04 0-.068-.01-.086-.028-.019-.018-.028-.047-.028-.087V9.507c0-.043.01-.072.028-.09.018-.016.047-.024.086-.024h.436c.042 0 .072.008.089.025.016.017.024.046.024.09v2.111c0 .04-.008.07-.024.087-.017.019-.047.028-.09.028zm1.948.05a.869.869 0 0 1-.513-.153.97.97 0 0 1-.334-.426 1.6 1.6 0 0 1-.116-.63c0-.38.09-.682.268-.91a.856.856 0 0 1 .709-.341.98.98 0 0 1 .622.206V8.458c0-.043.01-.073.027-.09.018-.016.047-.025.087-.025h.436c.042 0 .071.009.088.025.017.017.025.047.025.09v3.161c0 .04-.008.07-.025.087-.017.019-.046.028-.088.028h-.364a.135.135 0 0 1-.084-.023.137.137 0 0 1-.043-.078l-.027-.105a.958.958 0 0 1-.668.256zm.218-.504a.762.762 0 0 0 .418-.128v-1.21a.872.872 0 0 0-.45-.114c-.16 0-.28.06-.358.18-.08.121-.118.304-.118.548 0 .245.041.426.124.546.084.119.212.178.384.178zm2.588-.51c-.169 0-.315-.016-.44-.05.018.201.078.345.18.432.103.087.257.13.465.13.083 0 .164-.005.242-.016a2.997 2.997 0 0 0 .354-.076.135.135 0 0 1 .022-.002c.05 0 .075.035.075.103v.207c0 .048-.007.082-.02.101a.165.165 0 0 1-.077.052 1.895 1.895 0 0 1-.69.126c-.367 0-.65-.102-.846-.306-.197-.204-.296-.496-.296-.876 0-.39.1-.695.302-.917.202-.222.482-.333.84-.333.276 0 .492.068.647.203a.678.678 0 0 1 .234.539c0 .225-.084.395-.251.51-.168.115-.415.173-.74.173zm.063-.97c-.285 0-.45.176-.494.53.119.024.25.036.396.036.15 0 .26-.024.329-.07.068-.046.102-.117.102-.213 0-.19-.111-.284-.333-.284zm2.442 2.003c-.36 0-.642-.11-.845-.328-.203-.218-.304-.523-.304-.914 0-.388.101-.691.304-.91.203-.218.485-.327.845-.327s.642.109.845.327c.203.219.304.522.304.91 0 .39-.101.696-.304.914-.203.218-.485.328-.845.328zm0-.514c.318 0 .477-.242.477-.728 0-.483-.16-.724-.477-.724-.318 0-.477.241-.477.724 0 .486.16.728.477.728zm-6.844 1.886c.405-.306.944-.408 1.39-.408.418 0 .756.09.828.185.15.2-.039 1.584-.775 2.244-.112.102-.22.047-.17-.087.166-.442.536-1.436.36-1.677-.175-.242-1.158-.115-1.6-.058-.068.008-.107-.02-.112-.061v-.023c.004-.036.03-.078.079-.115zm-10.184-.172a.105.105 0 0 1 .106-.091c.027 0 .057.009.089.028a11.778 11.778 0 0 0 6.194 1.772c1.52 0 3.19-.34 4.726-1.043.232-.105.426.164.2.346-1.371 1.09-3.359 1.67-5.07 1.67-2.397 0-4.557-.956-6.191-2.547a.173.173 0 0 1-.054-.097Z"></path></svg></span></button>
+      <span class="lbl">Prime Video</span>
+    </div>
+    <div class="slot" style="left:1274px">
+      <img class="sh" src="assets/tile-shadow.png" alt="">
+      <button class="tile blk" aria-label="ZEE5"><span><img class="lg-n" src="assets/zee5-light.png" alt="ZEE5" style="height:78px;width:auto"><img class="lg-f" src="assets/zee5-dark.png" alt="" style="height:78px;width:auto"></span></button>
+      <span class="lbl">ZEE5</span>
+    </div>
+    <div class="slot" style="left:1568px">
+      <img class="sh" src="assets/tile-shadow.png" alt="">
+      <button class="tile" aria-label="Sony LIV"><span><svg role="img" aria-label="Sony LIV" width="88" height="88" viewBox="0 0 48 48" stroke-width="2.2"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="m40.5,5.5H7.5c-1.1046,0-2,.8954-2,2v33c0,1.1046.8954,2,2,2h33c1.1046,0,2-.8954,2-2V7.5c0-1.1046-.8954-2-2-2Z"></path>
+<path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="m5.5,7.5v3.2305c0,4.3342,2.7921,8.1751,6.915,9.5122l23.1701,7.5146c4.1228,1.3371,6.915,5.178,6.915,9.5122v3.2305"></path>
+<polyline fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" points="24.8162 17 24.8162 10 29.4537 17 29.4537 10"></polyline>
+<polyline fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" points="36.0369 10 33.7181 13.5 31.3994 10"></polyline>
+<line fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" x1="33.7181" y1="17" x2="33.7181" y2="13.5"></line>
+<path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="m12.1018,16.233c.4292.5588.9675.767,1.7163.767h1.0363c.9644,0,1.7462-.7818,1.7462-1.7462v-.0075c0-.9644-.7818-1.7462-1.7462-1.7462h-1.1432c-.9655,0-1.7481-.7827-1.7481-1.7481h0c0-.9675.7843-1.7519,1.7519-1.7519h1.0307c.7488,0,1.2871.2082,1.7163.767"></path>
+<rect fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" x="18.2331" y="10" width="4.6375" height="7" rx="2.3187" ry="2.3187"></rect>
+<polyline fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" points="30.6111 31.2489 27.8749 38.5 25.1386 31.2489"></polyline>
+<circle fill="currentColor" cx="22.1872" cy="27.8969" r=".75"></circle>
+<line fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" x1="22.1872" y1="31.2489" x2="22.1872" y2="38.5"></line>
+<path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="m17.3889,27.5549v9.577c0,.7556.6125,1.3681,1.3681,1.3681h.4104"></path></svg></span></button>
+      <span class="lbl">Sony LIV</span>
+    </div>
+  </nav>
+
+  <div id="toast"></div>
+
+  <div id="saver" aria-hidden="true">
+    <img src="assets/bg-night.jpg" alt="">
+    <div id="drift">
+      <div class="row" style="gap:14px"><span id="stime">--:--</span><span id="sampm"></span></div>
+      <p id="smsg"></p>
+      <div id="swx"><span id="swxicon"></span><span id="swxtext"></span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ============================ CONFIG: the bits you edit ============================ */
+var NAME = "Arnav";
+var CITY = { name: "New Delhi", lat: 28.6139, lon: 77.2090 };
+var IDLE_SECONDS = 180;            // screensaver after this long with no key press
+var WEATHER_REFRESH_MIN = 20;
+
+// Package names are what the launcher uses to open each app. The first one that is installed wins.
+// Confirm on your TV:  adb shell pm list packages | grep -i <name>
+var APPS = [
+  { name: "YouTube",     pkgs: ["com.google.android.youtube.tv"] },
+  { name: "Netflix",     pkgs: ["com.netflix.ninja"] },
+  { name: "JioHotstar",  pkgs: ["in.startv.hotstar.dplus.tv", "in.startv.hotstar"] },   // unverified guesses
+  { name: "Prime Video", pkgs: ["com.amazon.amazonvideo.livingroom"] },
+  { name: "ZEE5",        pkgs: ["com.graymatrix.did"] },                                // unverified guess
+  { name: "Sony LIV",    pkgs: ["com.sonyliv"] }
+];
+
+// The voice of the home screen. Only the three lines marked (yours) come from your design;
+// every other line is a placeholder I wrote, so replace them with lines that sound like you.
+// Keys: period.condition. Periods: morning, afternoon, evening, late. Conditions: clear, cloud, haze, rain, snow, storm, any.
+// {name} is replaced with NAME.
+var MESSAGES = {
+  "morning.haze":   ["Morning, {name}. Hazy out, but the day’s wide open."],            // (yours)
+  "morning.clear":  ["Morning, {name}. Clear skies, no excuses."],
+  "morning.rain":   ["Morning, {name}. Rain at the window. Take it slow."],
+  "morning.any":    ["Morning, {name}. Take your time."],
+  "afternoon.rain": ["Rain this afternoon, {name}. A good excuse to stay in."],
+  "afternoon.haze": ["Hazy afternoon, {name}. Stay in, stream on."],
+  "afternoon.any":  ["Afternoon, {name}. Something good to watch?"],
+  "evening.rain":   ["Rainy evening, {name}. A good one to stay in."],                   // (yours)
+  "evening.haze":   ["Hazy evening, {name}. Settle in."],
+  "evening.clear":  ["Clear evening, {name}. Your couch is waiting."],
+  "evening.any":    ["Evening, {name}. What are we watching?"],
+  "late.any":       ["Still up, {name}? One episode, then sleep."]
+};
+// Late-night screensaver line, e.g. "Past one, Arnav. One more, then sleep?"   (yours)
+var SAVER_LATE = "Past {hour}, {name}. One more, then sleep?";
+var SAVER_OTHER = { morning: "Good morning, {name}.", afternoon: "Afternoon, {name}.", evening: "Evening, {name}." };
+
+/* ============================ stage scaling ============================ */
+var stage = document.getElementById("stage");
+function fit() {
+  var s = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+  stage.style.transform = "translate(" + ((window.innerWidth - 1920 * s) / 2) + "px," + ((window.innerHeight - 1080 * s) / 2) + "px) scale(" + s + ")";
+}
+window.addEventListener("resize", fit); fit();
+
+/* ============================ debug overrides (for testing in a browser) ============================
+   ?t=19:42   fake the time      ?wx=61   fake a WMO weather code      ?idle=5   screensaver after 5 s */
+var Q = new URLSearchParams(location.search);
+function nowDate() {
+  var d = new Date(), t = Q.get("t");
+  if (t && /^\d{1,2}:\d{2}$/.test(t)) { var p = t.split(":"); d.setHours(+p[0], +p[1], 0, 0); }
+  return d;
+}
+if (Q.get("idle")) IDLE_SECONDS = +Q.get("idle");
+
+/* ============================ time of day ============================ */
+function period(h) { return h >= 5 && h < 12 ? "morning" : h < 17 && h >= 12 ? "afternoon" : h >= 17 && h < 22 ? "evening" : "late"; }
+var HOURWORD = ["midnight","one","two","three","four","five","six","seven","eight","nine","ten","eleven","noon","one","two","three","four","five","six","seven","eight","nine","ten","eleven"];
+var DAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+var MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+function fmtTime(d) { var h = d.getHours() % 12 || 12, m = d.getMinutes(); return { t: h + ":" + (m < 10 ? "0" : "") + m, ap: d.getHours() < 12 ? "AM" : "PM" }; }
+
+/* ============================ weather (Open-Meteo, no API key) ============================ */
+var WMO = {
+  0:["Clear","clear"],1:["Mostly Clear","clear"],2:["Partly Cloudy","cloud"],3:["Overcast","cloud"],
+  45:["Hazy","haze"],48:["Hazy","haze"],
+  51:["Light Drizzle","rain"],53:["Drizzle","rain"],55:["Heavy Drizzle","rain"],56:["Freezing Drizzle","rain"],57:["Freezing Drizzle","rain"],
+  61:["Light Rain","rain"],63:["Rain","rain"],65:["Heavy Rain","rain"],66:["Freezing Rain","rain"],67:["Freezing Rain","rain"],
+  71:["Light Snow","snow"],73:["Snow","snow"],75:["Heavy Snow","snow"],77:["Snow Grains","snow"],
+  80:["Showers","rain"],81:["Showers","rain"],82:["Heavy Showers","rain"],85:["Snow Showers","snow"],86:["Snow Showers","snow"],
+  95:["Thunderstorm","storm"],96:["Thunderstorm","storm"],99:["Thunderstorm","storm"]
+};
+var CLOUD = "M16 34 C6 34 6 20 17 20 C19 10 33 8 37 18 C46 16 50 26 46 34 Z";
+function icon(kind, night, size) {
+  var body;
+  if (kind === "clear") body = night ? '<path d="M36 10 A18 18 0 1 0 46 36 A14 14 0 1 1 36 10 Z"/>'
+    : '<circle cx="28" cy="28" r="9"/><path d="M28 7v6M28 43v6M7 28h6M43 28h6M13 13l4 4M39 39l4 4M43 13l-4 4M17 39l-4 4"/>';
+  else if (kind === "cloud") body = '<path d="' + CLOUD + '" transform="translate(0,4)"/>';
+  else if (kind === "haze") body = '<path d="' + CLOUD + '"/><path d="M14 42h28M20 49h22"/>';
+  else if (kind === "snow") body = '<path d="' + CLOUD + '"/><path d="M20 44v.1M30 44v.1M40 44v.1M25 50v.1M35 50v.1"/>';
+  else if (kind === "storm") body = '<path d="' + CLOUD + '"/><path d="M30 38l-6 8h8l-4 8"/>';
+  else body = '<path d="' + CLOUD + '"/><path d="M20 42 L17 50 M30 42 L27 50 M40 42 L37 50"/>';
+  return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 56 56" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + body + '</svg>';
+}
+var wx = null; // {temp, feels, code}
+function loadCachedWx() { try { var c = JSON.parse(localStorage.getItem("wx") || "null"); if (c) wx = c.v; } catch (e) {} }
+function fetchWx() {
+  var url = "https://api.open-meteo.com/v1/forecast?latitude=" + CITY.lat + "&longitude=" + CITY.lon +
+            "&current=temperature_2m,apparent_temperature,weather_code&timezone=auto";
+  fetch(url).then(function (r) { return r.json(); }).then(function (j) {
+    var c = j.current; wx = { temp: Math.round(c.temperature_2m), feels: Math.round(c.apparent_temperature), code: c.weather_code };
+    try { localStorage.setItem("wx", JSON.stringify({ t: Date.now(), v: wx })); } catch (e) {}
+    render(true);
+  }).catch(function () { /* keep whatever we have; the screen never goes blank */ });
+}
+
+/* ============================ rendering ============================ */
+function pick(list, seed) { return list[seed % list.length]; }
+function messageFor(per, cond, seed) {
+  var l = MESSAGES[per + "." + cond] || MESSAGES[per + ".any"] || ["Hello, {name}."];
+  return pick(l, seed).replace(/\{name\}/g, NAME);
+}
+var lastMsgKey = "";
+function render(force) {
+  var d = nowDate(), per = period(d.getHours()), ft = fmtTime(d);
+  var code = Q.get("wx") !== null ? +Q.get("wx") : (wx ? wx.code : null);
+  var info = code !== null && WMO[code] ? WMO[code] : null;
+  var cond = info ? info[1] : "any", night = per === "late" || per === "evening" && d.getHours() >= 19;
+
+  document.getElementById("time").textContent = ft.t;
+  document.getElementById("ampm").textContent = ft.ap;
+  document.getElementById("date").textContent = DAYS[d.getDay()] + ", " + d.getDate() + " " + MONTHS[d.getMonth()];
+  document.getElementById("stime").textContent = ft.t;
+  document.getElementById("sampm").textContent = ft.ap;
+
+  var temp = wx ? wx.temp + "°" : "–°", feels = wx ? "Feels like " + wx.feels + "°" : "";
+  document.getElementById("temp").textContent = temp;
+  document.getElementById("cond").textContent = info ? info[0] : "Weather unavailable";
+  document.getElementById("feels").textContent = feels;
+  document.getElementById("city").textContent = CITY.name;
+  document.getElementById("wxicon").innerHTML = info ? icon(info[1], night, 44) : "";
+  document.getElementById("swxicon").innerHTML = icon(info ? info[1] : "clear", true, 36);
+  document.getElementById("swxtext").textContent = CITY.name + (wx ? " · " + temp + " " + (info ? info[0] : "") : "");
+
+  // theme + background follow the time of day
+  var bg = per === "morning" || per === "afternoon" ? "morning" : per === "evening" ? "evening" : "night";
+  ["morning","evening","night"].forEach(function (n) { document.getElementById("bg-" + n).classList.toggle("on", n === bg); });
+  stage.classList.toggle("light", bg === "morning");
+
+  // greeting only changes when the situation changes, so it does not flicker every minute
+  var key = per + "." + cond;
+  if (force || key !== lastMsgKey) {
+    lastMsgKey = key;
+    document.getElementById("msg").textContent = messageFor(per, cond, d.getDate());
+  }
+  var sm = per === "late" ? SAVER_LATE.replace("{hour}", HOURWORD[d.getHours()]).replace(/\{name\}/g, NAME)
+                          : (SAVER_OTHER[per] || "Hello, {name}.").replace(/\{name\}/g, NAME);
+  document.getElementById("smsg").textContent = sm;
+}
+
+/* ============================ tiles + D-pad focus ============================ */
+var slots = [].slice.call(document.querySelectorAll(".slot"));
+var cur = 0;
+function setFocus(i) {
+  cur = Math.max(0, Math.min(slots.length - 1, i));
+  slots.forEach(function (s, n) { s.classList.toggle("on", n === cur); });
+  var b = slots[cur].querySelector(".tile"); if (document.activeElement !== b) b.focus({ preventScroll: true });
+}
+function toast(t) { var el = document.getElementById("toast"); el.textContent = t; el.classList.add("on"); clearTimeout(toast.h); toast.h = setTimeout(function () { el.classList.remove("on"); }, 2200); }
+function launch(i) {
+  var a = APPS[i];
+  if (window.Android && typeof window.Android.launch === "function") { window.Android.launch(JSON.stringify(a.pkgs)); }
+  else toast("Prototype: this would open " + a.name);
+}
+slots.forEach(function (s, i) {
+  var b = s.querySelector(".tile");
+  b.addEventListener("focus", function () { cur = i; slots.forEach(function (x, n) { x.classList.toggle("on", n === i); }); });
+  b.addEventListener("click", function () { wake(); launch(i); });
+  b.addEventListener("mouseenter", function () { if (!idle) setFocus(i); });
+});
+
+/* ============================ idle / screensaver ============================ */
+var idle = false, idleT;
+var saver = document.getElementById("saver");
+function sleep() { idle = true; saver.classList.add("on"); }
+function wake() { var was = idle; idle = false; saver.classList.remove("on"); clearTimeout(idleT); idleT = setTimeout(sleep, IDLE_SECONDS * 1000); return was; }
+document.addEventListener("keydown", function (e) {
+  if (wake()) { e.preventDefault(); return; }          // first key only wakes the screen
+  var k = e.key, c = e.keyCode;
+  if (k === "ArrowRight" || c === 22) { setFocus(cur + 1); e.preventDefault(); }
+  else if (k === "ArrowLeft" || c === 21) { setFocus(cur - 1); e.preventDefault(); }
+  else if (k === "ArrowUp" || k === "ArrowDown" || c === 19 || c === 20) { e.preventDefault(); }   // nothing above or below yet
+  else if (k === "Enter" || k === " " || c === 23 || c === 66) { launch(cur); e.preventDefault(); }
+});
+// The Android shell calls this when Home is pressed while the launcher is already open.
+window.onHome = function () { wake(); setFocus(0); };
+document.addEventListener("mousemove", function () { if (idle) wake(); });
+
+/* ============================ boot ============================ */
+loadCachedWx(); render(true); fetchWx();
+setInterval(function () { render(false); }, 1000);
+setInterval(fetchWx, WEATHER_REFRESH_MIN * 60 * 1000);
+setFocus(0); wake();
+</script>
+</body>
+</html>

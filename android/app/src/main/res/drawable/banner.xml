@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Placeholder 320x180 app-row banner. Replace with real artwork later. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="320dp"
+    android:height="180dp"
+    android:viewportWidth="320"
+    android:viewportHeight="180">
+    <path android:fillColor="#1C1C1E" android:pathData="M0,0h320v180h-320z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M122,62h76a8,8 0 0 1 8,8v40a8,8 0 0 1 -8,8h-76a8,8 0 0 1 -8,-8v-40a8,8 0 0 1 8,-8z" />
+</vector>
