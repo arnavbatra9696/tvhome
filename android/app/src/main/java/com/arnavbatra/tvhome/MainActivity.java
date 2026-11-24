@@ -41,6 +41,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        HomeKeyService.stockRequested = false;   // back on this launcher: Google TV's home gets handed over again
         nowPlaying.start();              // only while the home screen is in front
         // back on the home screen with music still playing: the page goes to the vinyl screen
         if (pageReady) web.evaluateJavascript("window.onResumeHome && window.onResumeHome()", null);
@@ -244,6 +245,7 @@ public class MainActivity extends Activity {
                         .setPackage("com.google.android.apps.tv.launcherx")
                         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 if (getPackageManager().resolveActivity(in, 0) == null) return false;
+                HomeKeyService.stockRequested = true;     // asked for on purpose: the Home remap won't bounce it back
                 startActivity(in);
                 return true;
             } catch (Exception e) {
