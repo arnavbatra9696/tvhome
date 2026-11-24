@@ -78,6 +78,30 @@ button{all:unset;box-sizing:border-box}
 @keyframes kb{from{transform:scale(1)}to{transform:scale(1.06)}}
 @keyframes drift{from{transform:translate(0,0)}to{transform:translate(36px,-28px)}}
 
+/* top-right pills: All apps / Settings (Up from the tiles) */
+#top{position:absolute;right:97px;top:34px;display:flex;gap:14px}
+.pill{height:58px;padding:0 26px;border-radius:29px;background:var(--card);color:var(--fg);font-size:26px;font-weight:600;
+  display:flex;align-items:center;gap:12px;transition:transform 200ms cubic-bezier(.2,.9,.25,1.1),background 160ms,color 160ms}
+.pill svg{width:26px;height:26px}
+.pill.on{background:#FFFFFF;color:#111113;transform:scale(1.08)}
+
+/* app drawer */
+#drawer{position:absolute;inset:0;background:rgba(7,10,16,.94);opacity:0;visibility:hidden;transition:opacity 260ms,visibility 0s 260ms}
+#drawer.on{opacity:1;visibility:visible;transition:opacity 260ms}
+#drawer h2{position:absolute;left:96px;top:64px;margin:0;font-size:52px;font-weight:650;letter-spacing:-.02em;color:#fff}
+#dhint{position:absolute;right:97px;top:82px;font-size:24px;font-weight:500;color:rgba(255,255,255,.55)}
+#dview{position:absolute;left:0;top:170px;width:1920px;height:910px;overflow:hidden}
+#dgrid{position:absolute;left:96px;top:24px;width:1728px;display:grid;grid-template-columns:repeat(6,254px);column-gap:40px;row-gap:34px;transition:transform 260ms ease}
+.app{display:flex;flex-direction:column;align-items:center;gap:12px}
+.app .ban{width:254px;height:143px;border-radius:20px;background:#1C1C1E;overflow:hidden;display:flex;align-items:center;justify-content:center;
+  transition:transform 200ms cubic-bezier(.2,.9,.25,1.1),box-shadow 200ms}
+.app .ban img.b{width:100%;height:100%;object-fit:cover}
+.app .ban img.i{width:84px;height:84px}
+.app span{font-size:22px;font-weight:600;color:rgba(255,255,255,.7);max-width:254px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.app.on .ban{transform:scale(1.1);box-shadow:0 0 0 4px #fff,0 18px 40px rgba(0,0,0,.5)}
+.app.on span{color:#fff}
+#dempty{position:absolute;left:96px;top:200px;font-size:30px;color:rgba(255,255,255,.6)}
+
 #toast{position:absolute;left:0;right:0;bottom:44px;text-align:center;font-size:26px;font-weight:500;opacity:0;transition:opacity 250ms;pointer-events:none}
 #toast.on{opacity:.9}
 </style>
@@ -159,6 +183,17 @@ button{all:unset;box-sizing:border-box}
       <span class="lbl">Spotify</span>
     </div>
   </nav>
+
+  <div id="top">
+    <button class="pill" id="p-apps" aria-label="All apps"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>All apps</button>
+    <button class="pill" id="p-set" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1.11-1.56 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1.03H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.65 8.9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34H9a1.7 1.7 0 0 0 1.03-1.56V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1.03 1.56 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87V9c.26.6.85 1 1.51 1.03H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1z"/></svg>Settings</button>
+  </div>
+
+  <div id="drawer" aria-hidden="true">
+    <h2>All apps</h2>
+    <div id="dhint">Back to close</div>
+    <div id="dview"><div id="dgrid"></div><div id="dempty" hidden>No apps found.</div></div>
+  </div>
 
   <div id="toast"></div>
 
@@ -331,6 +366,8 @@ function render(force) {
 /* ============================ tiles + D-pad focus ============================ */
 var slots = [].slice.call(document.querySelectorAll(".slot"));
 var cur = 0;
+var zone = "tiles";   // where the D-pad is: "tiles" | "top" (pills) | "drawer"
+var pills = [document.getElementById("p-apps"), document.getElementById("p-set")], pcur = 0;
 var row = document.getElementById("apps"), shift = 0;
 var ROW_L = 98, ROW_R = 1824, TILE_W = 254;          // visible band for the tile row on the 1920 stage
 function scrollRow() {
@@ -340,6 +377,8 @@ function scrollRow() {
   row.style.transform = "translateX(" + shift + "px)";
 }
 function setFocus(i) {
+  zone = "tiles";
+  pills.forEach(function (p) { p.classList.remove("on"); });
   cur = Math.max(0, Math.min(slots.length - 1, i));
   slots.forEach(function (s, n) { s.classList.toggle("on", n === cur); });
   scrollRow();
@@ -363,16 +402,86 @@ var idle = false, idleT;
 var saver = document.getElementById("saver");
 function sleep() { idle = true; saver.classList.add("on"); stage.classList.add("asleep"); }
 function wake() { var was = idle; idle = false; saver.classList.remove("on"); stage.classList.remove("asleep"); clearTimeout(idleT); idleT = setTimeout(sleep, IDLE_SECONDS * 1000); return was; }
+/* ============================ top pills + app drawer ============================ */
+var drawer = document.getElementById("drawer"), dgrid = document.getElementById("dgrid"), dcur = 0, dapps = [];
+var DCOLS = 6, DROW_H = 143 + 12 + 30 + 34;          // banner + gap + label + row gap
+
+function focusPill(i) {
+  zone = "top"; pcur = i;
+  slots.forEach(function (s) { s.classList.remove("on"); });
+  pills.forEach(function (p, n) { p.classList.toggle("on", n === pcur); });
+  pills[pcur].focus({ preventScroll: true });
+}
+function openSettings() {
+  if (window.Android && typeof window.Android.openSettings === "function") window.Android.openSettings();
+  else toast("Prototype: this would open Settings");
+}
+function loadApps() {
+  var list = [];
+  try {
+    list = window.Android && typeof window.Android.apps === "function" ? JSON.parse(window.Android.apps())
+      : APPS.map(function (a) { return { pkg: a.pkgs[0], label: a.name, banner: false, img: "" }; });   // browser preview
+  } catch (e) { list = []; }
+  dapps = list; dgrid.innerHTML = "";
+  list.forEach(function (a, i) {
+    var el = document.createElement("div"); el.className = "app";
+    var ban = document.createElement("div"); ban.className = "ban";
+    if (a.img) { var im = document.createElement("img"); im.className = a.banner ? "b" : "i"; im.src = a.img; im.alt = ""; ban.appendChild(im); }
+    var lb = document.createElement("span"); lb.textContent = a.label;
+    el.appendChild(ban); el.appendChild(lb);
+    el.addEventListener("click", function () { dcur = i; launchDrawer(); });
+    dgrid.appendChild(el);
+  });
+  document.getElementById("dempty").hidden = list.length > 0;
+}
+function setDrawerFocus(i) {
+  if (!dapps.length) return;
+  dcur = Math.max(0, Math.min(dapps.length - 1, i));
+  [].forEach.call(dgrid.children, function (c, n) { c.classList.toggle("on", n === dcur); });
+  var r = Math.floor(dcur / DCOLS);
+  dgrid.style.transform = "translateY(" + (-Math.max(0, r - 2) * DROW_H) + "px)";   // keep the focused row in view
+}
+function openDrawer() { loadApps(); drawer.classList.add("on"); zone = "drawer"; pills.forEach(function (p) { p.classList.remove("on"); }); setDrawerFocus(0); }
+function closeDrawer() { drawer.classList.remove("on"); setFocus(cur); }
+function launchDrawer() {
+  var a = dapps[dcur]; if (!a) return;
+  if (window.Android && typeof window.Android.launch === "function") window.Android.launch(JSON.stringify([a.pkg]));
+  else toast("Prototype: this would open " + a.label);
+  closeDrawer();
+}
+function activatePill() { if (pcur === 0) openDrawer(); else openSettings(); }
+pills.forEach(function (p, i) { p.addEventListener("click", function () { wake(); pcur = i; activatePill(); }); });
+
 document.addEventListener("keydown", function (e) {
   if (wake()) { e.preventDefault(); return; }          // first key only wakes the screen
   var k = e.key, c = e.keyCode;
-  if (k === "ArrowRight" || c === 22) { setFocus(cur + 1); e.preventDefault(); }
-  else if (k === "ArrowLeft" || c === 21) { setFocus(cur - 1); e.preventDefault(); }
-  else if (k === "ArrowUp" || k === "ArrowDown" || c === 19 || c === 20) { e.preventDefault(); }   // nothing above or below yet
-  else if (k === "Enter" || k === " " || c === 23 || c === 66) { launch(cur); e.preventDefault(); }
+  var L = k === "ArrowLeft" || c === 21, R = k === "ArrowRight" || c === 22, U = k === "ArrowUp" || c === 19, D = k === "ArrowDown" || c === 20;
+  var OK = k === "Enter" || k === " " || c === 23 || c === 66, BACK = k === "Escape" || k === "Backspace" || k === "GoBack" || c === 4;
+  if (!(L || R || U || D || OK || BACK)) return;
+  e.preventDefault();
+  if (zone === "drawer") {
+    var last = dapps.length - 1;
+    if (BACK) closeDrawer();
+    else if (L) setDrawerFocus(dcur - 1);
+    else if (R) setDrawerFocus(dcur + 1);
+    else if (U) { if (dcur - DCOLS >= 0) setDrawerFocus(dcur - DCOLS); }
+    else if (D) { if (dcur + DCOLS <= last) setDrawerFocus(dcur + DCOLS); else if (Math.floor(dcur / DCOLS) < Math.floor(last / DCOLS)) setDrawerFocus(last); }
+    else if (OK) launchDrawer();
+  } else if (zone === "top") {
+    if (L) focusPill(0);
+    else if (R) focusPill(1);
+    else if (D || BACK) setFocus(cur);
+    else if (OK) activatePill();
+  } else {
+    if (R) setFocus(cur + 1);
+    else if (L) setFocus(cur - 1);
+    else if (U) focusPill(0);
+    else if (OK) launch(cur);
+  }
 });
-// The Android shell calls this when Home is pressed while the launcher is already open.
-window.onHome = function () { wake(); setFocus(0); };
+// The Android shell calls these: Home pressed while we're open, and the remote's Back button.
+window.onHome = function () { wake(); drawer.classList.remove("on"); setFocus(0); };
+window.onBack = function () { if (zone === "drawer") closeDrawer(); else if (zone === "top") setFocus(cur); };
 document.addEventListener("mousemove", function () { if (idle) wake(); });
 
 /* ============================ boot ============================ */

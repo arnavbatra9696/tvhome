@@ -3,9 +3,14 @@ package com.arnavbatra.tvhome;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.util.Base64;
 import android.view.View;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebSettings;
@@ -14,6 +19,13 @@ import android.webkit.WebViewClient;
 import android.widget.Toast;
 
 import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.io.ByteArrayOutputStream;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * The whole launcher is one WebView showing web/index.html (bundled in assets).
@@ -62,9 +74,23 @@ public class MainActivity extends Activity {
         web.evaluateJavascript("window.onHome && window.onHome()", null);
     }
 
-    /** A home screen should never "go back" out of itself. */
+    /** A home screen should never "go back" out of itself; the page uses Back to close the app drawer. */
     @Override
-    public void onBackPressed() { /* intentionally empty */ }
+    public void onBackPressed() {
+        web.evaluateJavascript("window.onBack && window.onBack()", null);
+    }
+
+    /** Draws a launcher banner/icon into a PNG data: URL the page can show in an <img>. */
+    private static String toDataUrl(Drawable d, int w, int h) {
+        Bitmap b = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+        Canvas c = new Canvas(b);
+        d.setBounds(0, 0, w, h);
+        d.draw(c);
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        b.compress(Bitmap.CompressFormat.PNG, 100, bos);
+        b.recycle();
+        return "data:image/png;base64," + Base64.encodeToString(bos.toByteArray(), Base64.NO_WRAP);
+    }
 
     private void toast(final String msg) {
         runOnUiThread(new Runnable() {
@@ -99,7 +125,40 @@ public class MainActivity extends Activity {
             });
         }
 
-        /** Not wired to any button yet; the safety hatch for the future "all apps / settings" screen. */
+        /**
+         * Every app with a TV launch entry (what the stock "Your apps" grid shows), sorted by name:
+         * [{"pkg","label","banner":true|false,"img":"data:image/png;base64,..."}]. Our own app is left out.
+         */
+        @JavascriptInterface
+        public String apps() {
+            JSONArray out = new JSONArray();
+            try {
+                PackageManager pm = getPackageManager();
+                Intent q = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
+                List<ResolveInfo> list = pm.queryIntentActivities(q, 0);
+                Collections.sort(list, new ResolveInfo.DisplayNameComparator(pm));
+                Set<String> seen = new HashSet<>();
+                for (ResolveInfo ri : list) {
+                    String pkg = ri.activityInfo.packageName;
+                    if (pkg.equals(getPackageName()) || !seen.add(pkg)) continue;
+                    Drawable d = ri.activityInfo.loadBanner(pm);
+                    if (d == null) d = ri.activityInfo.applicationInfo.loadBanner(pm);
+                    boolean banner = d != null;
+                    if (d == null) d = ri.loadIcon(pm);
+                    JSONObject o = new JSONObject();
+                    o.put("pkg", pkg);
+                    o.put("label", ri.loadLabel(pm).toString());
+                    o.put("banner", banner);
+                    o.put("img", toDataUrl(d, banner ? 320 : 128, banner ? 180 : 128));
+                    out.put(o);
+                }
+            } catch (Exception e) {
+                // an empty list just shows "No apps found"; never crash the home screen
+            }
+            return out.toString();
+        }
+
+        /** Opens the TV's Settings app (the "Settings" pill on the home screen). */
         @JavascriptInterface
         public void openSettings() {
             try {
