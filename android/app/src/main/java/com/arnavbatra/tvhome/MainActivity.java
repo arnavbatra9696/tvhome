@@ -90,6 +90,7 @@ public class MainActivity extends Activity {
         setContentView(web);
         web.loadUrl("file:///android_asset/index.html");
         web.requestFocus();
+        handleHomeAliasSwitch(getIntent());
     }
 
     @Override
@@ -104,11 +105,28 @@ public class MainActivity extends Activity {
         }
     }
 
+    /**
+     * Lets adb switch this app's Home entry (.HomeAlias) on or off. Android 14 refuses `pm enable` on a
+     * single component from the shell, but an app may change its own components:
+     *   adb shell am start -n com.arnavbatra.tvhome/.MainActivity --es tvhome.homeAlias on    (or off)
+     */
+    private void handleHomeAliasSwitch(Intent intent) {
+        String v = intent == null ? null : intent.getStringExtra("tvhome.homeAlias");
+        if (v == null) return;
+        boolean on = "on".equals(v);
+        getPackageManager().setComponentEnabledSetting(
+                new android.content.ComponentName(this, "com.arnavbatra.tvhome.HomeAlias"),
+                on ? PackageManager.COMPONENT_ENABLED_STATE_ENABLED : PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                PackageManager.DONT_KILL_APP);
+        Toast.makeText(this, on ? "Home: this app can now be the Home screen" : "Home: back to a normal app", Toast.LENGTH_LONG).show();
+    }
+
     /** Pressing Home while we are already open lands here (launchMode=singleTask). */
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
+        handleHomeAliasSwitch(intent);
         web.evaluateJavascript("window.onHome && window.onHome()", null);
     }
 
