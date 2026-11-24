@@ -95,15 +95,18 @@ button{all:unset;box-sizing:border-box}
 #msaver.on{opacity:1;visibility:visible;transition:opacity 900ms ease}
 .mglowwrap{position:absolute;inset:0;will-change:opacity}
 .mglow{position:absolute;left:-240px;top:-660px;width:2400px;height:2400px;will-change:transform;
-  background:conic-gradient(from 0deg,var(--m1),var(--m2),var(--m3),var(--m4),var(--m5),var(--m3),var(--m1));animation:mspin 9s linear infinite}
+  animation:mspin 9s linear infinite}
+#msaver:not(.on) *{animation-play-state:paused!important}   /* hidden: nothing spins in the background */
+/* the glow is a 512 px image of the conic gradient, stretched by the GPU: a 2400 px painted layer was too big
+   for the TV's tile memory, so rotating corners went undrawn (dark wedges) and other parts (the title) dropped out */
 .mmask{position:absolute;left:30px;top:30px;width:1860px;height:1020px;border-radius:44px;background:var(--mbase);
   box-shadow:0 0 12px 8px var(--mbase);will-change:transform}
-.mvwrap{position:absolute;left:770px;top:190px;width:380px;height:380px;will-change:transform;transition:top 500ms ease}
+.mvwrap{position:absolute;left:770px;top:190px;width:380px;height:380px;will-change:transform;transition:translate 520ms cubic-bezier(.2,.7,.2,1)}
 .mvinyl{position:absolute;inset:0;animation:mspin 1.8s linear infinite;will-change:transform}
 .mvinyl svg{display:block}
 .mlabel{position:absolute;left:116px;top:116px;width:148px;height:148px;border-radius:50%;background:#5A4636 center/cover no-repeat}
 .mlabel::after{content:"";position:absolute;left:67px;top:67px;width:14px;height:14px;border-radius:50%;background:var(--mbase)}
-.marm{position:absolute;left:1260px;top:80px;width:68px;height:68px;transition:top 500ms ease}
+.marm{position:absolute;left:1260px;top:80px;width:68px;height:68px}
 .marm>div{position:absolute;inset:0;transform-origin:34px 34px;animation:marm 3.6s ease-in-out infinite alternate}
 @keyframes marm{from{transform:rotate(0deg)}to{transform:rotate(.8deg)}}
 .mbars{position:absolute;left:530px;width:860px;top:608px;display:flex;justify-content:space-between;align-items:flex-start;transition:opacity 400ms}
@@ -112,7 +115,7 @@ button{all:unset;box-sizing:border-box}
 .mbars .up span{display:block;width:10px;border-radius:5px 5px 0 0;background:rgba(255,255,255,.9);transform-origin:50% 100%;animation:mbar .8s ease-in-out infinite alternate}
 .mbars .dn{display:block;width:10px;border-radius:0 0 5px 5px;background:rgba(255,255,255,.18);transform-origin:50% 0;animation:mbar .8s ease-in-out infinite alternate}
 @keyframes mbar{from{transform:scaleY(.3)}to{transform:scaleY(1)}}
-.mtext{position:absolute;left:0;right:0;top:770px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;transition:top 500ms ease}
+.mtext{position:absolute;left:0;right:0;top:770px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;will-change:translate;transition:translate 520ms cubic-bezier(.2,.7,.2,1)}
 #m-title{margin:0;font-size:84px;font-weight:700;line-height:1;letter-spacing:-.035em;max-width:1500px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #m-artist{font-size:40px;font-weight:500;color:rgba(255,255,255,.82)}
 #m-src{font-size:28px;font-weight:500;color:rgba(255,255,255,.6)}
@@ -120,22 +123,22 @@ button{all:unset;box-sizing:border-box}
 .mclock{position:absolute;right:120px;top:90px;display:flex;align-items:baseline;gap:10px}
 #m-time{font-size:56px;font-weight:300;font-variant-numeric:tabular-nums}
 #m-ampm{font-size:28px;font-weight:500}
-#mctl{width:760px;margin-top:22px;display:none;flex-direction:column;gap:10px}
+#mctl{width:760px;margin-top:22px;display:flex;flex-direction:column;gap:10px;opacity:0;visibility:hidden;transition:opacity 280ms ease,visibility 0s 280ms}
 #mctl .times{display:flex;justify-content:space-between;font-size:26px;font-weight:500;color:rgba(255,255,255,.7);font-variant-numeric:tabular-nums}
-#mbtns{display:none;align-items:center;gap:40px;margin-top:4px}
+#mbtns{display:flex;align-items:center;gap:40px;margin-top:4px;opacity:0;visibility:hidden;transition:opacity 280ms ease,visibility 0s 280ms}
 #mbtns .cbtn{background:rgba(255,255,255,.14)}
 #mbtns .cbtn svg{width:38px;height:38px}
 #mbtns .cbtn.big{width:104px;height:104px;border-radius:52px}
 #mbtns .cbtn.big svg{width:44px;height:44px}
 #mbtns .cbtn.on{background:#FFFFFF;color:var(--mbase);transform:translateY(-12px) scale(1.14)}
 /* controls shown: everything moves up 30 px, text block to 614 px, bars give way to the controls */
-#msaver.ctl .mvwrap{top:160px}
-#msaver.ctl .marm{top:50px}
-#msaver.ctl .mtext{top:614px}
+/* same offsets as the design (up 30 px, text 770 -> 614), as GPU translates so nothing re-lays out mid-move */
+#msaver.ctl .mvwrap,#msaver.ctl .marm{translate:0 -30px}
+#msaver.ctl .mtext{translate:0 -156px}
 #msaver.ctl .mbars{opacity:0}
 #msaver.ctl #m-src{display:none}
 #msaver.ctl #m-src2{opacity:1}
-#msaver.ctl #mctl,#msaver.ctl #mbtns{display:flex}
+#msaver.ctl #mctl,#msaver.ctl #mbtns{opacity:1;visibility:visible;transition:opacity 280ms ease 120ms}
 /* the design's fixed 0.47 s beat (used when there is no live bass) */
 #msaver.beat .mglowwrap{animation:mglowbeat .47s cubic-bezier(.2,.8,.3,1) infinite}
 #msaver.beat .mmask{animation:mmaskbeat .47s cubic-bezier(.2,.8,.3,1) infinite}
@@ -216,7 +219,7 @@ button{all:unset;box-sizing:border-box}
 @keyframes fxflash{0%,88%,94%{opacity:1}90%,96%{opacity:.2}}
 @keyframes fxspin{to{transform:rotate(360deg)}}
 /* needle drop: the tonearm swings on and lifts off; the record spins up / down in JS */
-.marm{transform-origin:34px 34px;transform:rotate(-24deg);transition:transform 900ms var(--spring),top 500ms ease}
+.marm{transform-origin:34px 34px;transform:rotate(-24deg);transition:transform 900ms var(--spring),translate 520ms cubic-bezier(.2,.7,.2,1)}
 .marm.down{transform:rotate(0deg)}
 #msaver.paused .mvinyl{animation-play-state:running}   /* speed is eased in JS (playbackRate), not snapped */
 
@@ -327,7 +330,7 @@ button{all:unset;box-sizing:border-box}
   </div>
 
   <div id="msaver" class="beat" aria-hidden="true">
-    <div class="mglowwrap"><div class="mglow"></div></div>
+    <div class="mglowwrap"><img class="mglow" id="mglow" alt=""></div>
     <div class="mmask"></div>
     <div class="mvwrap">
       <div class="mvinyl">
@@ -706,7 +709,9 @@ function coverPalette(img, done) {
       if (picks.length < 3 && bins[k].w > 0 && picks.every(function (p) { var dd = Math.abs(p - k); return Math.min(dd, 12 - dd) >= 2; })) picks.push(k);
     });
     var hues = picks.map(function (k) { return { h: bins[k].h / bins[k].w, s: bins[k].s / bins[k].w }; });
-    while (hues.length < 3) hues.push({ h: (hues[0] ? hues[0].h : 20) + 25 * hues.length, s: hues[0] ? hues[0].s : 0.6 });
+    // a mostly black / white / sepia cover has no colour worth glowing with: use the design's warm palette
+    if (!hues.length || hues[0].s < 0.22) { done(null); return; }
+    while (hues.length < 3) hues.push({ h: hues[0].h + 25 * hues.length, s: hues[0].s });
     done(hues);
   } catch (e) { done(null); }
 }
@@ -720,9 +725,13 @@ function hsl(r, g, b) {
   }
   return [h, s, l];
 }
+var DESIGN_PALETTE = { "--m1": "#FF6B3D", "--m2": "#F2B27A", "--m3": "#E0607E", "--m4": "#F7D9A8", "--m5": "#FF8A3D", "--mbase": "#1E1712" };
 function applyPalette(hues) {
-  if (!hues) return;
-  var sat = function (s) { return s < 0.08 ? 14 : Math.round(Math.max(s, 0.62) * 100); };
+  if (!hues) {                                          // no usable colour: the Music screensaver's own palette
+    for (var k in DESIGN_PALETTE) msaver.style.setProperty(k, DESIGN_PALETTE[k]);
+    paintGlow(); return;
+  }
+  var sat = function (s) { return Math.round(Math.max(s, 0.62) * 100); };
   var c = function (x, l) { return "hsl(" + Math.round(x.h) + "," + sat(x.s) + "%," + l + "%)"; };
   // same rhythm as the design's orange / peach / pink / cream / orange
   msaver.style.setProperty("--m1", c(hues[0], 62));
@@ -730,8 +739,27 @@ function applyPalette(hues) {
   msaver.style.setProperty("--m3", c(hues[2], 63));
   msaver.style.setProperty("--m4", c(hues[1], 84));
   msaver.style.setProperty("--m5", c(hues[0], 66));
-  msaver.style.setProperty("--mbase", "hsl(" + Math.round(hues[0].h) + "," + (hues[0].s < 0.08 ? 6 : 25) + "%,9%)");
+  msaver.style.setProperty("--mbase", "hsl(" + Math.round(hues[0].h) + ",25%,9%)");
+  paintGlow();
 }
+/* Draws the spinning glow (the design's conic gradient) into a small image; the GPU stretches and rotates it. */
+function paintGlow() {
+  var img = document.getElementById("mglow"), cs = getComputedStyle(msaver);
+  var col = function (v) { return cs.getPropertyValue(v).trim() || DESIGN_PALETTE[v]; };
+  var stops = [col("--m1"), col("--m2"), col("--m3"), col("--m4"), col("--m5"), col("--m3"), col("--m1")];
+  var c = document.createElement("canvas"); c.width = c.height = 512;
+  var g = c.getContext("2d");
+  if (g.createConicGradient) {
+    var grad = g.createConicGradient(-Math.PI / 2, 256, 256);        // from 0deg = 12 o'clock, like CSS
+    stops.forEach(function (s, i) { grad.addColorStop(i / (stops.length - 1), s); });
+    g.fillStyle = grad; g.fillRect(0, 0, 512, 512);
+    img.src = c.toDataURL("image/png");
+  } else {
+    img.removeAttribute("src");
+    img.style.background = "conic-gradient(from 0deg," + stops.join(",") + ")";   // very old WebView: paint it
+  }
+}
+paintGlow();
 
 function setPlayIcons(playing) {
   [mBtns[1]].forEach(function (b) {
