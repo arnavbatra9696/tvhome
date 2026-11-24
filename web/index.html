@@ -153,12 +153,14 @@ var WEATHER_REFRESH_MIN = 20;
 
 // Package names are what the launcher uses to open each app. The first one that is installed wins.
 // Confirm on your TV:  adb shell pm list packages | grep -i <name>
+// All six verified 2026-11-24 on HKC 4K 9676 Google TV (Android 14): each is installed and
+// resolves a LEANBACK_LAUNCHER activity.
 var APPS = [
   { name: "YouTube",     pkgs: ["com.google.android.youtube.tv"] },
   { name: "Netflix",     pkgs: ["com.netflix.ninja"] },
-  { name: "JioHotstar",  pkgs: ["in.startv.hotstar.dplus.tv", "in.startv.hotstar"] },   // unverified guesses
+  { name: "JioHotstar",  pkgs: ["in.startv.hotstar"] },
   { name: "Prime Video", pkgs: ["com.amazon.amazonvideo.livingroom"] },
-  { name: "ZEE5",        pkgs: ["com.graymatrix.did"] },                                // unverified guess
+  { name: "ZEE5",        pkgs: ["com.graymatrix.did"] },
   { name: "Sony LIV",    pkgs: ["com.sonyliv"] }
 ];
 
