@@ -34,6 +34,31 @@ import java.util.Set;
 public class MainActivity extends Activity {
 
     private WebView web;
+    private NowPlaying nowPlaying;
+    private boolean pageReady = false;
+    private String pendingNowPlaying = null;
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        nowPlaying.start();              // only while the home screen is in front
+    }
+
+    @Override
+    protected void onPause() {
+        nowPlaying.stop();               // nothing runs while you're watching something else
+        super.onPause();
+    }
+
+    /** Hands now-playing JSON to the page (queued until the page has loaded). */
+    private void pushNowPlaying(final String json) {
+        runOnUiThread(new Runnable() {
+            @Override public void run() {
+                if (!pageReady) { pendingNowPlaying = json; return; }
+                web.evaluateJavascript("window.onNowPlaying && window.onNowPlaying(" + json + ")", null);
+            }
+        });
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,7 +71,16 @@ public class MainActivity extends Activity {
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true);          // lets the page cache the last weather reading
 
-        web.setWebViewClient(new WebViewClient());
+        nowPlaying = new NowPlaying(this, new NowPlaying.Sink() {
+            @Override public void push(String json) { pushNowPlaying(json); }
+        });
+
+        web.setWebViewClient(new WebViewClient() {
+            @Override public void onPageFinished(WebView view, String url) {
+                pageReady = true;
+                if (pendingNowPlaying != null) { String j = pendingNowPlaying; pendingNowPlaying = null; pushNowPlaying(j); }
+            }
+        });
         web.addJavascriptInterface(new Bridge(), "Android");   // the page calls Android.launch(...)
 
         setContentView(web);
@@ -156,6 +190,23 @@ public class MainActivity extends Activity {
                 // an empty list just shows "No apps found"; never crash the home screen
             }
             return out.toString();
+        }
+
+        /** Bass loudness of what the TV is playing, 0..1 (0 when the visualizer isn't available). Polled per frame. */
+        @JavascriptInterface
+        public float level() { return nowPlaying.level(); }
+
+        /** "toggle" | "next" | "prev" on the current media session. */
+        @JavascriptInterface
+        public void media(final String cmd) {
+            runOnUiThread(new Runnable() { @Override public void run() { nowPlaying.command(cmd); } });
+        }
+
+        /** Brings the app that is playing to the front. */
+        @JavascriptInterface
+        public void openPlaying() {
+            String pkg = nowPlaying.packageName();
+            if (pkg != null) launch(new JSONArray().put(pkg).toString());
         }
 
         /** Opens the TV's Settings app (the "Settings" pill on the home screen). */

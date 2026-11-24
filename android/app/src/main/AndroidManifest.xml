@@ -2,6 +2,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Now Playing: the Visualizer reads the TV's output mix (session 0) to pulse the glow to the bass.
+         Android files this under RECORD_AUDIO; the app never opens the microphone. Granted over adb. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 
     <uses-feature android:name="android.software.leanback" android:required="false" />
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
@@ -37,6 +41,18 @@
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Lets the launcher see what other apps are playing (title, artist, cover). Needs notification
+             access: adb shell cmd notification allow_listener com.arnavbatra.tvhome/.MediaListener -->
+        <service
+            android:name=".MediaListener"
+            android:label="Home: Now Playing"
+            android:exported="true"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
 
         <!-- Step 2 (later): switched OFF by default. Enabling it over ADB makes this a candidate home screen. -->
         <activity-alias
