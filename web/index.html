@@ -701,8 +701,9 @@ function coverPalette(img, done) {
     var d = g.getImageData(0, 0, 24, 24).data, bins = [];
     for (var b = 0; b < 12; b++) bins.push({ w: 0, h: 0, s: 0 });
     for (var i = 0; i < d.length; i += 4) {
-      var hs = hsl(d[i], d[i + 1], d[i + 2]), w = hs[1] * hs[1] * (1 - Math.abs(hs[2] - 0.5)) + 0.01, k = Math.floor(hs[0] / 30) % 12;
-      bins[k].w += w; bins[k].h += hs[0] * w; bins[k].s += hs[1] * w;
+      // weigh by chroma (distance from grey), not HSL saturation: cream / sepia have high HSL saturation but no colour
+      var hs = hsl(d[i], d[i + 1], d[i + 2]), w = hs[3] * hs[3] + 0.002, k = Math.floor(hs[0] / 30) % 12;
+      bins[k].w += w; bins[k].h += hs[0] * w; bins[k].s += hs[3] * w;
     }
     var order = bins.map(function (x, k) { return k; }).sort(function (a, b) { return bins[b].w - bins[a].w; }), picks = [];
     order.forEach(function (k) {
@@ -723,7 +724,7 @@ function hsl(r, g, b) {
     h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
     h = (h * 60 + 360) % 360;
   }
-  return [h, s, l];
+  return [h, s, l, d];                                   // d = chroma, 0 (grey) .. 1 (pure colour)
 }
 var DESIGN_PALETTE = { "--m1": "#FF6B3D", "--m2": "#F2B27A", "--m3": "#E0607E", "--m4": "#F7D9A8", "--m5": "#FF8A3D", "--mbase": "#1E1712" };
 function applyPalette(hues) {
