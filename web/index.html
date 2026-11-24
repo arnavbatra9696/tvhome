@@ -188,11 +188,18 @@ var SAVER_OTHER = { morning: "Good morning, {name}.", afternoon: "Afternoon, {na
 
 /* ============================ stage scaling ============================ */
 var stage = document.getElementById("stage");
+// Measure the layout viewport, not window.innerWidth: Android TV's WebView (no wide viewport) reports
+// innerWidth in device pixels (1920) while the page lays out at 960x540 CSS px (devicePixelRatio 2),
+// which left the stage at scale(1) with only its top-left quarter on screen.
 function fit() {
-  var s = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
-  stage.style.transform = "translate(" + ((window.innerWidth - 1920 * s) / 2) + "px," + ((window.innerHeight - 1080 * s) / 2) + "px) scale(" + s + ")";
+  var el = document.documentElement;
+  var w = el.clientWidth || window.innerWidth, h = el.clientHeight || window.innerHeight;
+  var s = Math.min(w / 1920, h / 1080);
+  stage.style.transform = "translate(" + ((w - 1920 * s) / 2) + "px," + ((h - 1080 * s) / 2) + "px) scale(" + s + ")";
 }
-window.addEventListener("resize", fit); fit();
+window.addEventListener("resize", fit);
+if (window.visualViewport) window.visualViewport.addEventListener("resize", fit);
+fit();
 
 /* ============================ debug overrides (for testing in a browser) ============================
    ?t=19:42   fake the time      ?wx=61   fake a WMO weather code      ?idle=5   screensaver after 5 s */
