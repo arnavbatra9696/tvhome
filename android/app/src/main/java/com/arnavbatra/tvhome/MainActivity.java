@@ -42,11 +42,14 @@ public class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
         nowPlaying.start();              // only while the home screen is in front
+        // back on the home screen with music still playing: the page goes to the vinyl screen
+        if (pageReady) web.evaluateJavascript("window.onResumeHome && window.onResumeHome()", null);
     }
 
     @Override
     protected void onPause() {
         nowPlaying.stop();               // nothing runs while you're watching something else
+        if (pageReady) web.evaluateJavascript("window.onLeaveHome && window.onLeaveHome()", null);
         super.onPause();
     }
 
@@ -70,6 +73,7 @@ public class MainActivity extends Activity {
         WebSettings s = web.getSettings();
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true);          // lets the page cache the last weather reading
+        s.setMediaPlaybackRequiresUserGesture(false);   // the interface sounds (a remote press isn't a "tap")
 
         nowPlaying = new NowPlaying(this, new NowPlaying.Sink() {
             @Override public void push(String json) { pushNowPlaying(json); }
@@ -207,6 +211,26 @@ public class MainActivity extends Activity {
         public void openPlaying() {
             String pkg = nowPlaying.packageName();
             if (pkg != null) launch(new JSONArray().put(pkg).toString());
+        }
+
+        /**
+         * The "All apps" tile: opens the stock Google TV home screen (where every app is), even after this
+         * launcher becomes the default Home. Returns false if it isn't there (e.g. disabled), so the page
+         * can show its own drawer instead.
+         */
+        @JavascriptInterface
+        public boolean openStockHome() {
+            try {
+                Intent in = new Intent(Intent.ACTION_MAIN)
+                        .addCategory(Intent.CATEGORY_HOME)
+                        .setPackage("com.google.android.apps.tv.launcherx")
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                if (getPackageManager().resolveActivity(in, 0) == null) return false;
+                startActivity(in);
+                return true;
+            } catch (Exception e) {
+                return false;
+            }
         }
 
         /** Opens the TV's Settings app (the "Settings" pill on the home screen). */
