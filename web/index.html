@@ -22,6 +22,18 @@ button{all:unset;box-sizing:border-box}
 .bg{position:absolute;inset:0;width:1920px;height:1080px;opacity:0;transition:opacity 1400ms ease}
 .bg.on{opacity:1}
 
+/* ambient motion: the active background slowly pans/zooms and two soft glows drift over it.
+   transform/opacity only (GPU-composited, no repaints); paused while the screensaver covers it. */
+.bg.on{animation:bgdrift 60s ease-in-out infinite alternate;will-change:transform}
+@keyframes bgdrift{from{transform:scale(1.04) translate(0,0)}to{transform:scale(1.10) translate(-34px,-20px)}}
+#glow{position:absolute;left:-240px;top:-240px;width:2400px;height:1560px;pointer-events:none;will-change:transform;
+  background:radial-gradient(640px 420px at 30% 38%,var(--g1),transparent 70%),radial-gradient(760px 520px at 74% 68%,var(--g2),transparent 70%);
+  animation:glow 28s ease-in-out infinite alternate}
+#stage{--g1:rgba(110,140,255,.20);--g2:rgba(80,190,220,.14)}
+#stage.light{--g1:rgba(255,190,120,.22);--g2:rgba(255,140,170,.14)}
+@keyframes glow{0%{transform:translate(0,0) rotate(0deg)}50%{transform:translate(140px,-70px) rotate(7deg)}100%{transform:translate(-90px,50px) rotate(-5deg)}}
+#stage.asleep .bg.on,#stage.asleep #glow{animation-play-state:paused}
+
 #msg{position:absolute;left:96px;top:110px;width:1160px;margin:0;font-size:88px;font-weight:650;line-height:1.04;letter-spacing:-.03em;transition:opacity 400ms}
 .card{position:absolute;left:1383px;width:440px;border-radius:36px;background:var(--card);padding:28px 34px;display:flex;flex-direction:column;justify-content:space-between}
 #clock{top:117px;height:206px}
@@ -36,12 +48,13 @@ button{all:unset;box-sizing:border-box}
 #cond{font-size:30px;font-weight:600}
 .wxbot{display:flex;flex-direction:column;gap:4px}
 
-/* app tiles */
+/* app tiles: the row slides left/right so the focused tile stays between x=98 and x=1824 */
+#apps{position:absolute;left:0;top:0;width:1920px;height:1080px;pointer-events:none;transition:transform 300ms cubic-bezier(.2,.8,.2,1)}
+#apps .slot{pointer-events:auto}
 .slot{position:absolute;top:748px;width:254px;height:152px}
 .sh{position:absolute;left:-83px;top:-40px;width:420px;height:290px;opacity:0;transition:opacity 220ms ease-out;pointer-events:none}
 .tile{position:absolute;inset:0;border-radius:28px;background:#1C1C1E;color:#FFFFFF;display:flex;align-items:center;justify-content:center;cursor:pointer;
   transform-origin:50% 60%;transition:transform 220ms cubic-bezier(.2,.9,.25,1.1),background 160ms,color 160ms}
-.tile.blk{background:#0B0A0E}
 .tile>span{display:flex;align-items:center;justify-content:center;color:inherit}
 .lbl{position:absolute;left:-40px;width:334px;top:194px;text-align:center;font-size:30px;font-weight:600;opacity:0;transition:opacity 220ms}
 .slot.on .tile{transform:translateY(-12px) scale(1.14);background:#FFFFFF;color:#111113}
@@ -74,6 +87,7 @@ button{all:unset;box-sizing:border-box}
   <img class="bg" id="bg-morning" src="assets/bg-morning.jpg" alt="">
   <img class="bg" id="bg-evening" src="assets/bg-evening.jpg" alt="">
   <img class="bg" id="bg-night" src="assets/bg-night.jpg" alt="">
+  <div id="glow" aria-hidden="true"></div>
 
   <h1 id="msg"></h1>
 
@@ -111,7 +125,7 @@ button{all:unset;box-sizing:border-box}
     </div>
     <div class="slot" style="left:1274px">
       <img class="sh" src="assets/tile-shadow.png" alt="">
-      <button class="tile blk" aria-label="ZEE5"><span><img class="lg-n" src="assets/zee5-light.png" alt="ZEE5" style="height:78px;width:auto"><img class="lg-f" src="assets/zee5-dark.png" alt="" style="height:78px;width:auto"></span></button>
+      <button class="tile" aria-label="ZEE5"><span><img class="lg-n" src="assets/zee5-light.png" alt="ZEE5" style="height:78px;width:auto"><img class="lg-f" src="assets/zee5-dark.png" alt="" style="height:78px;width:auto"></span></button>
       <span class="lbl">ZEE5</span>
     </div>
     <div class="slot" style="left:1568px">
@@ -128,6 +142,21 @@ button{all:unset;box-sizing:border-box}
 <line fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" x1="22.1872" y1="31.2489" x2="22.1872" y2="38.5"></line>
 <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="m17.3889,27.5549v9.577c0,.7556.6125,1.3681,1.3681,1.3681h.4104"></path></svg></span></button>
       <span class="lbl">Sony LIV</span>
+    </div>
+    <div class="slot" style="left:1862px">
+      <img class="sh" src="assets/tile-shadow.png" alt="">
+      <button class="tile" aria-label="YouTube Music"><span><svg role="img" aria-label="YouTube Music" width="88" height="88" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.376 0 0 5.376 0 12s5.376 12 12 12 12-5.376 12-12S18.624 0 12 0zm0 19.104c-3.924 0-7.104-3.18-7.104-7.104S8.076 4.896 12 4.896s7.104 3.18 7.104 7.104-3.18 7.104-7.104 7.104zm0-13.332c-3.432 0-6.228 2.796-6.228 6.228S8.568 18.228 12 18.228s6.228-2.796 6.228-6.228S15.432 5.772 12 5.772zM9.684 15.54V8.46L15.816 12l-6.132 3.54z"></path></svg></span></button>
+      <span class="lbl">YouTube Music</span>
+    </div>
+    <div class="slot" style="left:2156px">
+      <img class="sh" src="assets/tile-shadow.png" alt="">
+      <button class="tile" aria-label="Crunchyroll"><span><svg role="img" aria-label="Crunchyroll" width="88" height="88" viewBox="0 0 24 24" fill="currentColor"><path d="M2.909 13.436C2.914 7.61 7.642 2.893 13.468 2.898c5.576.005 10.137 4.339 10.51 9.819q.021-.351.022-.706C24.007 5.385 18.64.006 12.012 0S.007 5.36 0 11.988 5.36 23.994 11.988 24q.412 0 .815-.027c-5.526-.338-9.9-4.928-9.894-10.538Zm16.284.155a4.1 4.1 0 0 1-4.095-4.103 4.1 4.1 0 0 1 2.712-3.855 8.950 8.950 0 0 0-4.187-1.037 9.007 9.007 0 1 0 8.997 9.016q-.001-.847-.15-1.651a4.1 4.1 0 0 1-3.278 1.63Z"></path></svg></span></button>
+      <span class="lbl">Crunchyroll</span>
+    </div>
+    <div class="slot" style="left:2450px">
+      <img class="sh" src="assets/tile-shadow.png" alt="">
+      <button class="tile" aria-label="Spotify"><span><svg role="img" aria-label="Spotify" width="88" height="88" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.560-1.021 8.520-.6 11.640 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"></path></svg></span></button>
+      <span class="lbl">Spotify</span>
     </div>
   </nav>
 
@@ -161,7 +190,10 @@ var APPS = [
   { name: "JioHotstar",  pkgs: ["in.startv.hotstar"] },
   { name: "Prime Video", pkgs: ["com.amazon.amazonvideo.livingroom"] },
   { name: "ZEE5",        pkgs: ["com.graymatrix.did"] },
-  { name: "Sony LIV",    pkgs: ["com.sonyliv"] }
+  { name: "Sony LIV",    pkgs: ["com.sonyliv"] },
+  { name: "YouTube Music", pkgs: ["com.google.android.youtube.tvmusic"] },
+  { name: "Crunchyroll", pkgs: ["com.crunchyroll.crunchyroid"] },
+  { name: "Spotify",     pkgs: ["com.spotify.tv.android"] }
 ];
 
 // The voice of the home screen. Only the three lines marked (yours) come from your design;
@@ -299,9 +331,18 @@ function render(force) {
 /* ============================ tiles + D-pad focus ============================ */
 var slots = [].slice.call(document.querySelectorAll(".slot"));
 var cur = 0;
+var row = document.getElementById("apps"), shift = 0;
+var ROW_L = 98, ROW_R = 1824, TILE_W = 254;          // visible band for the tile row on the 1920 stage
+function scrollRow() {
+  var x = parseFloat(slots[cur].style.left);
+  if (x + shift < ROW_L) shift = ROW_L - x;            // focused tile went off the left: slide right
+  if (x + TILE_W + shift > ROW_R) shift = ROW_R - TILE_W - x;   // off the right: slide left
+  row.style.transform = "translateX(" + shift + "px)";
+}
 function setFocus(i) {
   cur = Math.max(0, Math.min(slots.length - 1, i));
   slots.forEach(function (s, n) { s.classList.toggle("on", n === cur); });
+  scrollRow();
   var b = slots[cur].querySelector(".tile"); if (document.activeElement !== b) b.focus({ preventScroll: true });
 }
 function toast(t) { var el = document.getElementById("toast"); el.textContent = t; el.classList.add("on"); clearTimeout(toast.h); toast.h = setTimeout(function () { el.classList.remove("on"); }, 2200); }
@@ -320,8 +361,8 @@ slots.forEach(function (s, i) {
 /* ============================ idle / screensaver ============================ */
 var idle = false, idleT;
 var saver = document.getElementById("saver");
-function sleep() { idle = true; saver.classList.add("on"); }
-function wake() { var was = idle; idle = false; saver.classList.remove("on"); clearTimeout(idleT); idleT = setTimeout(sleep, IDLE_SECONDS * 1000); return was; }
+function sleep() { idle = true; saver.classList.add("on"); stage.classList.add("asleep"); }
+function wake() { var was = idle; idle = false; saver.classList.remove("on"); stage.classList.remove("asleep"); clearTimeout(idleT); idleT = setTimeout(sleep, IDLE_SECONDS * 1000); return was; }
 document.addEventListener("keydown", function (e) {
   if (wake()) { e.preventDefault(); return; }          // first key only wakes the screen
   var k = e.key, c = e.keyCode;
